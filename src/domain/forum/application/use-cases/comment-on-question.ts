@@ -24,7 +24,7 @@ export class CommentOnQuestionUseCase {
     questionId,
     content,
   }: CommentOnQuestionUseCaseRequest): Promise<CommentOnQuestionUseCaseResponse> {
-    const question = this.questionsRepository.findById(questionId);
+    const question = await this.questionsRepository.findById(questionId);
 
     if (!question) {
       throw new Error('Question not found.');
