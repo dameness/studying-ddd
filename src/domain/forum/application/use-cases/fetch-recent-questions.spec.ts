@@ -28,11 +28,17 @@ describe('Fetch Recent Questions', () => {
       })
     );
 
-    const { questions } = await sut.execute({ page: 1 });
+    const result = await sut.execute({ page: 1 });
 
-    expect(questions).toHaveLength(3);
-    expect(questions[0]).toMatchObject({ createdAt: new Date(2022, 0, 20) });
-    expect(questions[2]).toMatchObject({ createdAt: new Date(2018, 0, 20) });
+    expect(result.isRight()).toBe(true);
+
+    expect(result.value?.questions).toHaveLength(3);
+    expect(result.value?.questions[0]).toMatchObject({
+      createdAt: new Date(2022, 0, 20),
+    });
+    expect(result.value?.questions[2]).toMatchObject({
+      createdAt: new Date(2018, 0, 20),
+    });
   });
 
   it('should be able to fetch recent questions with pagination', async () => {
@@ -42,10 +48,11 @@ describe('Fetch Recent Questions', () => {
       );
     }
 
-    const { questions } = await sut.execute({ page: 2 });
+    const result = await sut.execute({ page: 2 });
 
-    expect(questions).toHaveLength(15);
-    expect(questions[0].createdAt).toEqual(new Date(14, 0));
-    expect(questions[14].createdAt).toEqual(new Date(0, 0));
+    expect(result.isRight()).toBe(true);
+    expect(result.value?.questions).toHaveLength(15);
+    expect(result.value?.questions[0].createdAt).toEqual(new Date(14, 0));
+    expect(result.value?.questions[14].createdAt).toEqual(new Date(0, 0));
   });
 });

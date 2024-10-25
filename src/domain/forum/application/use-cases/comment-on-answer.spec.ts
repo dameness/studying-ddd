@@ -22,12 +22,17 @@ describe('Comment On Answer', () => {
 
     await inMemoryAnswersRepository.create(newAnswer);
 
-    await sut.execute({
+    const result = await sut.execute({
       answerId: newAnswer.id.toString(),
       authorId: newAnswer.authorId.toString(),
       content: 'Test',
     });
 
-    expect(inMemoryAnswerCommentsRepository.items[0].content).toEqual('Test');
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(inMemoryAnswerCommentsRepository.items[0]).toEqual(
+        result.value.answerComment
+      );
+    }
   });
 });

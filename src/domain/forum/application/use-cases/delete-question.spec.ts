@@ -1,6 +1,8 @@
 import { InMemoryQuestionsRepository } from 'test/repositories/in-memory-questions-repository';
 import { DeleteQuestionUseCase } from './delete-question';
 import { makeQuestion } from 'test/factories/make-question';
+import { ResourceNotFoundError } from '@/domain/forum/application/use-cases/errors/resource-not-found-error';
+import { NotAllowedError } from '@/domain/forum/application/use-cases/errors/not-allowed-error';
 
 let inMemoryQuestionsRepository: InMemoryQuestionsRepository;
 let sut: DeleteQuestionUseCase;
@@ -18,10 +20,12 @@ describe('Delete Question', () => {
 
     const questionId = newQuestion.id.toString();
 
-    await sut.execute({
+    const result = await sut.execute({
       authorId: newQuestion.authorId.toString(),
       questionId,
     });
+
+    expect(result.isRight()).toBe(true);
 
     const question = await inMemoryQuestionsRepository.findById(questionId);
 
@@ -29,12 +33,13 @@ describe('Delete Question', () => {
   });
 
   it('should not be able to delete a question with invalid id', async () => {
-    await expect(() =>
-      sut.execute({
-        authorId: 'any',
-        questionId: 'any',
-      })
-    ).rejects.toBeInstanceOf(Error);
+    const result = await sut.execute({
+      authorId: 'any',
+      questionId: 'any',
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(ResourceNotFoundError);
   });
 
   it('should not be able to delete a question of a different author', async () => {
@@ -44,11 +49,12 @@ describe('Delete Question', () => {
 
     const questionId = newQuestion.id.toString();
 
-    await expect(() =>
-      sut.execute({
-        authorId: 'not-the-id',
-        questionId,
-      })
-    ).rejects.toBeInstanceOf(Error); // improve error handling
+    const result = await sut.execute({
+      authorId: 'not-the-id',
+      questionId,
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(NotAllowedError);
   });
 });

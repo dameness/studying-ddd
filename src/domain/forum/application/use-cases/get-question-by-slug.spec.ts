@@ -1,6 +1,7 @@
 import { InMemoryQuestionsRepository } from 'test/repositories/in-memory-questions-repository';
 import { GetQuestionBySlugUseCase } from './get-question-by-slug';
 import { makeQuestion } from 'test/factories/make-question';
+import { ResourceNotFoundError } from './errors/resource-not-found-error';
 
 let inMemoryQuestionsRepository: InMemoryQuestionsRepository;
 let sut: GetQuestionBySlugUseCase;
@@ -18,18 +19,22 @@ describe('Get Question By Slug', () => {
 
     await inMemoryQuestionsRepository.create(newQuestion);
 
-    const { question } = await sut.execute({
+    const result = await sut.execute({
       slug: 'example-question',
     });
 
-    expect(question.id).toBeTruthy();
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(result.value.question.id).toBeTruthy();
+    }
   });
 
   it('should not be able to get a question with invalid slug', async () => {
-    await expect(() =>
-      sut.execute({
-        slug: 'my_title',
-      })
-    ).rejects.toBeInstanceOf(Error);
+    const result = await sut.execute({
+      slug: 'my_title',
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(ResourceNotFoundError);
   });
 });

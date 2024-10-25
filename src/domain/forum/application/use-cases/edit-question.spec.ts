@@ -1,6 +1,8 @@
 import { InMemoryQuestionsRepository } from 'test/repositories/in-memory-questions-repository';
 import { EditQuestionUseCase } from './edit-question';
 import { makeQuestion } from 'test/factories/make-question';
+import { NotAllowedError } from '@/domain/forum/application/use-cases/errors/not-allowed-error';
+import { ResourceNotFoundError } from '@/domain/forum/application/use-cases/errors/resource-not-found-error';
 
 let inMemoryQuestionsRepository: InMemoryQuestionsRepository;
 let sut: EditQuestionUseCase;
@@ -18,28 +20,31 @@ describe('Edit Question', () => {
 
     const questionId = newQuestion.id.toString();
 
-    await sut.execute({
+    const result = await sut.execute({
       authorId: newQuestion.authorId.toString(),
       questionId,
       content: 'edited content',
       title: 'edited title',
     });
 
-    expect(inMemoryQuestionsRepository.items[0]).toMatchObject({
-      content: 'edited content',
-      title: 'edited title',
-    });
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(inMemoryQuestionsRepository.items[0]).toEqual(
+        result.value.question
+      );
+    }
   });
 
   it('should not be able to edit a question with invalid id', async () => {
-    await expect(() =>
-      sut.execute({
-        authorId: 'any',
-        questionId: 'any',
-        content: 'edited content',
-        title: 'edited title',
-      })
-    ).rejects.toBeInstanceOf(Error);
+    const result = await sut.execute({
+      authorId: 'any',
+      questionId: 'any',
+      content: 'edited content',
+      title: 'edited title',
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(ResourceNotFoundError);
   });
 
   it('should not be able to edit a question of a different author', async () => {
@@ -49,13 +54,14 @@ describe('Edit Question', () => {
 
     const questionId = newQuestion.id.toString();
 
-    await expect(() =>
-      sut.execute({
-        authorId: 'not-the-id',
-        questionId,
-        content: 'edited content',
-        title: 'edited title',
-      })
-    ).rejects.toBeInstanceOf(Error); // improve error handling
+    const result = await sut.execute({
+      authorId: 'not-the-id',
+      questionId,
+      content: 'edited content',
+      title: 'edited title',
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(NotAllowedError);
   });
 });

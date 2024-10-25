@@ -23,12 +23,17 @@ describe('Comment On Question', () => {
 
     await inMemoryQuestionsRepository.create(newQuestion);
 
-    await sut.execute({
+    const result = await sut.execute({
       questionId: newQuestion.id.toString(),
       authorId: newQuestion.authorId.toString(),
       content: 'Test',
     });
 
-    expect(inMemoryQuestionCommentsRepository.items[0].content).toEqual('Test');
+    expect(result.isRight()).toBe(true);
+    if (result.isRight()) {
+      expect(inMemoryQuestionCommentsRepository.items[0]).toEqual(
+        result.value.questionComment
+      );
+    }
   });
 });

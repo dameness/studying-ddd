@@ -1,6 +1,8 @@
 import { makeQuestionComment } from 'test/factories/make-question-comment';
 import { InMemoryQuestionCommentsRepository } from 'test/repositories/in-memory-question-comments-repository';
 import { DeleteQuestionCommentUseCase } from './delete-question-comment';
+import { ResourceNotFoundError } from './errors/resource-not-found-error';
+import { NotAllowedError } from './errors/not-allowed-error';
 
 let inMemoryQuestionCommentsRepository: InMemoryQuestionCommentsRepository;
 let sut: DeleteQuestionCommentUseCase;
@@ -19,10 +21,12 @@ describe('Delete Question Comment', () => {
 
     const questionCommentId = newQuestionComment.id.toString();
 
-    await sut.execute({
+    const result = await sut.execute({
       authorId: newQuestionComment.authorId.toString(),
       questionCommentId,
     });
+
+    expect(result.isRight()).toBe(true);
 
     const question = await inMemoryQuestionCommentsRepository.findById(
       questionCommentId
@@ -32,12 +36,13 @@ describe('Delete Question Comment', () => {
   });
 
   it('should not be able to delete a question comment with invalid id', async () => {
-    await expect(() =>
-      sut.execute({
-        authorId: 'any',
-        questionCommentId: 'any',
-      })
-    ).rejects.toBeInstanceOf(Error);
+    const result = await sut.execute({
+      authorId: 'any',
+      questionCommentId: 'any',
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(ResourceNotFoundError);
   });
 
   it('should not be able to delete a question comment of a different author', async () => {
@@ -47,11 +52,12 @@ describe('Delete Question Comment', () => {
 
     const questionCommentId = newQuestionComment.id.toString();
 
-    await expect(() =>
-      sut.execute({
-        authorId: 'not-the-id',
-        questionCommentId,
-      })
-    ).rejects.toBeInstanceOf(Error); // improve error handling
+    const result = await sut.execute({
+      authorId: 'not-the-id',
+      questionCommentId,
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(NotAllowedError);
   });
 });
