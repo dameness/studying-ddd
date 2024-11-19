@@ -3,13 +3,20 @@ import { DeleteQuestionUseCase } from './delete-question';
 import { makeQuestion } from 'test/factories/make-question';
 import { ResourceNotFoundError } from '@/domain/forum/application/use-cases/errors/resource-not-found-error';
 import { NotAllowedError } from '@/domain/forum/application/use-cases/errors/not-allowed-error';
+import { InMemoryQuestionAttachmentsRepository } from 'test/repositories/in-memory-question-attachments-repository';
+import { makeQuestionAttachment } from 'test/factories/make-question-attachment';
 
 let inMemoryQuestionsRepository: InMemoryQuestionsRepository;
+let inMemoryQuestionAttachmentsRepository: InMemoryQuestionAttachmentsRepository;
 let sut: DeleteQuestionUseCase;
 
 describe('Delete Question', () => {
   beforeEach(() => {
-    inMemoryQuestionsRepository = new InMemoryQuestionsRepository();
+    inMemoryQuestionAttachmentsRepository =
+      new InMemoryQuestionAttachmentsRepository();
+    inMemoryQuestionsRepository = new InMemoryQuestionsRepository(
+      inMemoryQuestionAttachmentsRepository
+    );
     sut = new DeleteQuestionUseCase(inMemoryQuestionsRepository);
   });
 
@@ -19,6 +26,10 @@ describe('Delete Question', () => {
     await inMemoryQuestionsRepository.create(newQuestion);
 
     const questionId = newQuestion.id.toString();
+
+    inMemoryQuestionAttachmentsRepository.items.push(
+      makeQuestionAttachment({ questionId: newQuestion.id })
+    );
 
     const result = await sut.execute({
       authorId: newQuestion.authorId.toString(),
@@ -30,6 +41,8 @@ describe('Delete Question', () => {
     const question = await inMemoryQuestionsRepository.findById(questionId);
 
     expect(question).toBe(null);
+
+    expect(inMemoryQuestionAttachmentsRepository.items).toHaveLength(0);
   });
 
   it('should not be able to delete a question with invalid id', async () => {

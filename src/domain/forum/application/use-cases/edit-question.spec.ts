@@ -3,20 +3,44 @@ import { EditQuestionUseCase } from './edit-question';
 import { makeQuestion } from 'test/factories/make-question';
 import { NotAllowedError } from '@/domain/forum/application/use-cases/errors/not-allowed-error';
 import { ResourceNotFoundError } from '@/domain/forum/application/use-cases/errors/resource-not-found-error';
+import { InMemoryQuestionAttachmentsRepository } from 'test/repositories/in-memory-question-attachments-repository';
+import { makeQuestionAttachment } from 'test/factories/make-question-attachment';
+import { UniqueEntityID } from '@/core/entities/unique-entity-id';
 
 let inMemoryQuestionsRepository: InMemoryQuestionsRepository;
+let inMemoryQuestionAttachmentsRepository: InMemoryQuestionAttachmentsRepository;
 let sut: EditQuestionUseCase;
 
 describe('Edit Question', () => {
   beforeEach(() => {
-    inMemoryQuestionsRepository = new InMemoryQuestionsRepository();
-    sut = new EditQuestionUseCase(inMemoryQuestionsRepository);
+    inMemoryQuestionAttachmentsRepository =
+      new InMemoryQuestionAttachmentsRepository();
+    inMemoryQuestionsRepository = new InMemoryQuestionsRepository(
+      inMemoryQuestionAttachmentsRepository
+    );
+    inMemoryQuestionAttachmentsRepository =
+      new InMemoryQuestionAttachmentsRepository();
+    sut = new EditQuestionUseCase(
+      inMemoryQuestionsRepository,
+      inMemoryQuestionAttachmentsRepository
+    );
   });
 
   it('should be able to edit a question', async () => {
     const newQuestion = makeQuestion();
 
     await inMemoryQuestionsRepository.create(newQuestion);
+
+    inMemoryQuestionAttachmentsRepository.items.push(
+      makeQuestionAttachment({
+        questionId: newQuestion.id,
+        attachmentId: new UniqueEntityID('1'),
+      }),
+      makeQuestionAttachment({
+        questionId: newQuestion.id,
+        attachmentId: new UniqueEntityID('2'),
+      })
+    );
 
     const questionId = newQuestion.id.toString();
 
@@ -25,6 +49,7 @@ describe('Edit Question', () => {
       questionId,
       content: 'edited content',
       title: 'edited title',
+      attachmentsIds: ['1', '3'],
     });
 
     expect(result.isRight()).toBe(true);
@@ -32,6 +57,13 @@ describe('Edit Question', () => {
       expect(inMemoryQuestionsRepository.items[0]).toEqual(
         result.value.question
       );
+
+      expect(
+        inMemoryQuestionsRepository.items[0].attachments.currentItems
+      ).toEqual([
+        expect.objectContaining({ attachmentId: new UniqueEntityID('1') }),
+        expect.objectContaining({ attachmentId: new UniqueEntityID('3') }),
+      ]);
     }
   });
 
