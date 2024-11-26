@@ -27,7 +27,7 @@ export class OnAnswerCreated implements EventHandler {
     if (!question) return;
 
     await this.sendNotificationUseCase.execute({
-      recipientId: question?.authorId.toString(),
+      recipientId: question.authorId.toString(),
       title: `New answer in "${question.title.substring(0, 40).concat('...')}"`,
       content: answer.excerpt,
     });
